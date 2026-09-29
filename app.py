@@ -14,14 +14,15 @@ if st.button("ক্লিপ তৈরি করুন (Generate Shorts)"):
     if not youtube_url:
         st.warning("দয়া করে সঠিক ইউটিউব লিংক দিন!")
     else:
-        with st.spinner("ভিডিও ডাউনলোড এবং প্রসেস করা হচ্ছে, দয়া করে অপেক্ষা করুন... কাজ চলতে থাকুক..."):
+        with st.spinner("ভিডিও ডাউনলোড এবং প্রসেস করা হচ্ছে, দয়া করে অপেক্ষা করুন..."):
             try:
-                # yt-dlp দিয়ে ভিডিও ডাউনলোডের কনফিগারেশন
+                # সবচেয়ে নিরাপদ এবং জেনেরিক ফরম্যাট অপশন
                 output_template = "input_video.mp4"
                 ydl_opts = {
-                    'format': 'best[ext=mp4]/best',
+                    'format': 'best',
                     'outtmpl': output_template,
                     'noplaylist': True,
+                    'fixup': 'detect_or_warn',
                 }
                 
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -36,7 +37,7 @@ if st.button("ক্লিপ তৈরি করুন (Generate Shorts)"):
                 duration = clip.duration
                 st.info(f"মোট ভিডিওর দৈর্ঘ্য: {int(duration)} সেকেন্ড")
                 
-                # প্রথম ৩০ সেকেন্ডের ক্লিপ কেটে নেওয়া (এআই বা কাস্টম সময় অনুযায়ী)
+                # প্রথম ৩০ সেকেন্ডের ক্লিপ কেটে নেওয়া
                 end_time = min(30, duration)
                 short_clip = clip.subclipped(0, end_time)
                 
@@ -48,7 +49,6 @@ if st.button("ক্লিপ তৈরি করুন (Generate Shorts)"):
                 
                 st.success("আপনার শর্টস ক্লিপ তৈরি হয়ে গেছে!")
                 
-                # ডাউনলোড বাটন
                 with open(output_filename, "rb") as file:
                     st.download_button(
                         label="ডাউনলোড শর্টস (Download Short)",

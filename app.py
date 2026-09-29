@@ -1,6 +1,6 @@
 import os
 import streamlit as st
-from pytubefix import YouTube
+import yt_dlp
 from moviepy.video.io.VideoFileClip import VideoFileClip
 
 st.set_page_config(page_title="AI Shorts Generator", page_icon="🎬", layout="centered")
@@ -14,26 +14,29 @@ if st.button("ক্লিপ তৈরি করুন (Generate Shorts)"):
     if not youtube_url:
         st.warning("দয়া করে সঠিক ইউটিউব লিংক দিন!")
     else:
-        with st.spinner("ভিডিও প্রসেস করা হচ্ছে, দয়া করে অপেক্ষা করুন..."):
+        with st.spinner("ভিডিও ডাউনলোড এবং প্রসেস করা হচ্ছে, দয়া করে অপেক্ষা করুন... কাজ চলতে থাকুক..."):
             try:
-                yt = YouTube(youtube_url)
-                st.write(f"**ভিডিওর নাম:** {yt.title}")
+                # yt-dlp দিয়ে ভিডিও ডাউনলোডের কনফিগারেশন
+                output_template = "input_video.mp4"
+                ydl_opts = {
+                    'format': 'best[ext=mp4]/best',
+                    'outtmpl': output_template,
+                    'noplaylist': True,
+                }
                 
-                # আপডেট করা ডাউনলোড পদ্ধতি (সবচেয়ে ভালো উপলব্ধ স্ট্রিম ফিল্টার করা)
-                stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info_dict = ydl.extract_info(youtube_url, download=True)
+                    video_title = info_dict.get('title', 'Unknown Video')
                 
-                if not stream:
-                    # যদি প্রগ্রেসিভ না পাওয়া যায়, তবে যেকোনো একটি স্ট্রিম নেওয়ার চেষ্টা করবে
-                    stream = yt.streams.get_lowest_resolution()
-                
-                downloaded_file = stream.download(filename="input_video.mp4")
-                
-                clip = VideoFileClip(downloaded_file)
-                duration = clip.duration
-                
+                st.write(f"**ভিডিওর নাম:** {video_title}")
                 st.success("ভিডিও সফলভাবে ডাউনলোড হয়েছে!")
+                
+                # Moviepy দিয়ে ভিডিও প্রসেস করা
+                clip = VideoFileClip(output_template)
+                duration = clip.duration
                 st.info(f"মোট ভিডিওর দৈর্ঘ্য: {int(duration)} সেকেন্ড")
                 
+                # প্রথম ৩০ সেকেন্ডের ক্লিপ কেটে নেওয়া (এআই বা কাস্টম সময় অনুযায়ী)
                 end_time = min(30, duration)
                 short_clip = clip.subclipped(0, end_time)
                 
@@ -45,6 +48,7 @@ if st.button("ক্লিপ তৈরি করুন (Generate Shorts)"):
                 
                 st.success("আপনার শর্টস ক্লিপ তৈরি হয়ে গেছে!")
                 
+                # ডাউনলোড বাটন
                 with open(output_filename, "rb") as file:
                     st.download_button(
                         label="ডাউনলোড শর্টস (Download Short)",
